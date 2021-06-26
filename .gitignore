@@ -1,0 +1,11 @@
+/cluster_plots
+/pictures_and_random
+/split_vid
+*.MP4
+*.mp4
+*.pkl
+*.png
+*.jpg
+*.jpeg
+*.csv
+/__pycache__
