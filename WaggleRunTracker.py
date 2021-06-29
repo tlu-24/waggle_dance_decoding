@@ -1,12 +1,20 @@
 import pandas as pd
 import numpy as np
+import argparse
 import cv2
 from scipy import interpolate
 
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", required=True,
+                help="path to the input cleaned waggle detection pkl file")
+ap.add_argument("-v", "--visualize", default=False, required=False,
+                help="show visualizations")
+args = vars(ap.parse_args())
 
-FILENAME = 'WaggleDetections-.pkl'
+FILENAME = args['input']
 LABEL = FILENAME.split('-')[0]
-VISUALIZE = False
+VISUALIZE = args['visualize']
 
 # Load dataset
 path = FILENAME

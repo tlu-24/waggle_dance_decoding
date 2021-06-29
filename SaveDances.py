@@ -1,15 +1,24 @@
-from WaggleDanceTracker.ClusterRuns import FILENAME
 import pandas as pd
 import numpy as np
 import cv2
+import argparse
 
-FILENAME = 'WaggleRunsFinal.pkl'
-VIDEO = '../test.mp4'
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-f", "--filename", required=True,
+                help="path to the input waggle runs pkl file")
+ap.add_argument("-v", "--video", required=True,
+                help="path to the input video")
+args = vars(ap.parse_args())
+
+FILENAME = args['filename']
+VIDEO = args['video']
 
 df = pd.read_pickle(FILENAME)
 
 prefix = FILENAME.split('-')[0]
-cap = cv2.VideoCapture('../test.mp4')
+cap = cv2.VideoCapture(VIDEO)
+
 # Dimensions of video
 fps = cap.get(cv2.CAP_PROP_FPS)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))

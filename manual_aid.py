@@ -18,10 +18,26 @@ FILENAME = 'WaggleDetections-.pkl'
 DRAW_BOXES = False
 OUT_DIR = './manual_detection_aid/'
 OUT_PREFIX = 'segment'
-BUFFER = 44  # frames
+BUFFER = 100  # frames
 FPS = 24
-BOX_SIZE = 100  # pt
-DRAW_BOX = True
+
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", required=True,
+                help="path to the input pkl waggle detections")
+ap.add_argument("-o", "--outdir", required=True,
+                help="out directory for the json manifest file")
+ap.add_argument("-f", "--fps", type=int, required=True,
+                help="the fps of the video")
+ap.add_argument("-b", "--buffer", default=150, required=False,
+                help="how many frames long the buffer on either end of the cluster")
+args = vars(ap.parse_args())
+
+FILENAME = args['input']
+OUT_DIR = args['outdir']
+OUT_PREFIX = FILENAME.split('-')[0]
+BUFFER = args['buffer']  # frames
+FPS = args['fps']
 
 # this function takes 2 lists of frames to start and end
 # and does the appropriate changes with correct overlap to output
@@ -32,24 +48,25 @@ def make_ranges(starts, ends):
     final_starts = []
     final_ends = []
     length = []
-    labels = ['segment0']
+    labels = [OUT_PREFIX + '_'+str(int(starts[0]/FPS))]
     current_start = starts[0]
-    final_starts.append(current_start)
+    final_starts.append((current_start-BUFFER)/FPS)
     current_end = ends[0]
 
     for si, s in enumerate(starts):
         if s <= current_end + BUFFER:
             current_end = ends[si]
         else:
-            length.append(((current_end - current_start)/FPS))
+            length.append(((current_end - current_start)/FPS)+BUFFER)
             final_ends.append(current_end)
-            labels.append(OUT_PREFIX + str(si))
+
+            current_start = s - BUFFER/FPS
             current_end = ends[si]
-            current_start = s
+            labels.append(OUT_PREFIX + '_' + str(int(current_start/FPS)))
             final_starts.append((current_start/FPS))
     final_ends.append(current_end)
-    length.append(((current_end - current_start)/FPS))
-    return (labels, final_starts, length)
+    length.append(((current_end - current_start)/FPS) + BUFFER)
+    return (labels, final_starts, final_ends, length)
 
 
 # take input from DanceDetector.py
@@ -58,15 +75,20 @@ waggle_df = pd.read_pickle(FILENAME)
 waggle_df = waggle_df.sort_values(
     by=['Cluster', 'frame']).reset_index().drop(['index'], axis=1)
 
-# open(OUT_DIR + 'cluster' + c, 'x', )
 
 # do some sort of clustering, probably just use the cluster number to get start and stop frames
 
-
+# need to add time handling!!!
 cluster_ranges = []
+
+clusters = []
+coord_x = []
+coord_y = []
+names = []
 
 # iterate through the clusters
 for c in waggle_df['Cluster'].unique():
+
     # write to file a new line indicating new cluster
     out = open(OUT_DIR + 'cluster' + str(c) + '.csv', 'w')
     out.write('Cluster ' + str(c) + '\n' +
@@ -81,35 +103,58 @@ for c in waggle_df['Cluster'].unique():
         continue
     # Extract values from df
     start = clust.iloc[0, :]['frame']
-    # start = df.iloc[0, :]
     end = clust.iloc[-1, :]['frame']
     cluster = clust.iloc[0, :]['Cluster']
+
+    # keep track of the clusters
+    if c != -1:
+        clusters.append(c)
+
+        # where in space the cluster starts
+        coord_x.append(clust.iloc[0, :]['x'])
+        coord_y.append(clust.iloc[0, :]['x'])
+
     # Get range of frames where waggle occurs
     rang = np.arange(start, end, 1)
-    cluster_ranges.append((c, (start, end)))
+    cluster_ranges.append((c, (int(start), int(end))))
     out.close()
 
 # loop through cluster ranges to get places to cut the video
 starts = []
 ends = []
 label = []
+
+
 for i, (c, (start, end)) in enumerate(cluster_ranges):
     starts.append(int(start))
     ends.append(int(end))
     label.append(c)
 
-# print("start", starts, "end", ends)
-labels, final_starts, lengths = make_ranges(starts, ends)
+
+labels, final_starts, final_ends, lengths = make_ranges(starts, ends)
+
+# get which video clusters are a part of
+for ci, c in enumerate(clusters):
+    if c == -1:
+        continue
+    else:
+        for si, s in enumerate(final_starts):
+            if starts[ci] >= s and starts[ci] <= final_ends[si]:
+                names.append(labels[si])
+
+
+info_dict = {'video': names, 'cluster': clusters,  'frame_start': starts,
+             'coord_x': coord_x, 'coord_y': coord_y}
 
 out_dict = {'start_time': final_starts, 'length': lengths, 'rename_to': labels}
-# print(len(out_dict['start_time']), len(
-#     out_dict['length']), len(out_dict['rename_to']))
-out_df = pd.DataFrame(out_dict)
 
-# out_df.to_csv(OUT_DIR+"video_cuts1.csv")
+out_df = pd.DataFrame(out_dict)
+info_df = pd.DataFrame(info_dict)
 
 # create manifest file for split.py
-out_df.to_json(OUT_DIR+OUT_PREFIX+"_video_cuts.json", orient='records')
+out_df.to_json(OUT_DIR+'/'+'manual_detect_cuts-' +
+               OUT_PREFIX+".json", orient='records')
 
-
-# maybe do some sort of visual cue ? have it turn on and off-able
+# create the info file
+info_df.to_csv(OUT_DIR+'/'+'manual_detect_info-' +
+               OUT_PREFIX+".csv")

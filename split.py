@@ -30,17 +30,17 @@ def get_global_start(filename):
                                 int(date)//10000, (int(date) - (int(date)//10000 * 10000))//100, int(time)//100, int(time)-(int(time)//100 * 100))
     outtime = datetime.time(int(time)//100, int(time)-(int(time)//100 * 100))
     print(colony, outdate, outtime, videoname)
-    return (colony, outdate, videoname.split('.')[0])
+    return (colony, outdate, videoname)
 
 # turn a datetime into a good filename
 
 
 def date_to_string(datetime):
-    y = str(datetime.year)
-    m = str(datetime.month)
-    d = str(datetime.day)
-    h = str(datetime.hour)
-    m = str(datetime.minute)
+    y = str(int(datetime.year))
+    m = str(int(datetime.month))
+    d = str(int(datetime.day))
+    h = str(int(datetime.hour))
+    m = str(int(datetime.minute))
     s = str(int(datetime.second))
     return m+d+y+'_'+h+m+s
 
@@ -66,7 +66,7 @@ def by_manifest(filename, destination, manifest, vcodec='copy', acodec='copy',
 
     outdict = {'name': [], 'start_time': [], 'length': []}
     (colony, date, videoname) = get_global_start(filename)
-    current_start = global_start_time
+    current_start = date
 
     with open(manifest) as manifest_file:
         manifest_type = manifest.split('.')[-1]
@@ -177,8 +177,7 @@ def by_seconds(filename, destination, split_length, vcodec='copy',
         current_start = date + datetime.timedelta(
             seconds=split_start)
 
-        outdict['name'].append(str(colony)+'_'+videoname +
-                               '_'+date_to_string(current_start)+'.MP4')
+        outdict['name'].append(colony+'_'+str(current_start)+'.MP4')
         outdict['start_time'].append(current_start)
         outdict['length'].append(split_length)
 

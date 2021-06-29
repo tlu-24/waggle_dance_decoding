@@ -5,12 +5,18 @@ from scipy import signal
 from scipy import stats
 from sklearn.mixture import GaussianMixture
 import itertools
+import argparse
 import math
 
 warnings.filterwarnings('ignore')
 
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", required=True,
+                help="path to the input cleaned waggle detection pkl file")
+args = vars(ap.parse_args())
 
-FILENAME = 'WaggleRuns.pkl'
+FILENAME = args['input']
 LABEL = FILENAME.split('-')[0]
 
 

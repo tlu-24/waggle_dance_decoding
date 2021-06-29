@@ -1,15 +1,27 @@
 import cv2
 import numpy as np
 import pandas as pd
+import argparse
 from sklearn.cluster import DBSCAN
 from matplotlib import pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 
-BEE_CONTOUR = 28
-THRESHOLD = 150
-BLUR = 1
-VISUALIZE = True
-FILENAME = '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/split_vid/smalltes2t.MP4'
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", required=True,
+                help="path to the input video")
+ap.add_argument("-c", "--contour", type=int, required=True,
+                help="size of the bee waggle contour")
+ap.add_argument("-b", "--blur", default=25, required=False,
+                help="blur radius, usually works best when about half the width of the bee")
+ap.add_argument("-v", "--visualize", default=False, required=False,
+                help="show visualizations")
+args = vars(ap.parse_args())
+
+BEE_CONTOUR = args['contour']
+BLUR = args['blur']
+VISUALIZE = args['visualize']
+FILENAME = args['input']
 LABEL = FILENAME.split('/')[-1].split('.')[0]
 
 

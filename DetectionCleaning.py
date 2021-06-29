@@ -1,9 +1,20 @@
 import pandas as pd
 import numpy as np
+import argparse
 
-FILENAME = 'WaggleDetections-.pkl'
+
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", required=True,
+                help="path to the input pkl file")
+ap.add_argument("-g", "--graphs", type=bool, default=False, required=False,
+                help="optional, graph the results")
+
+args = vars(ap.parse_args())
+
+FILENAME = args['input']
 LABEL = FILENAME.split('-')[0]
-GRAPHS = False
+GRAPHS = args['graphs']
 
 waggle_df = pd.read_pickle(FILENAME)
 # Sort by cluster and then frame so the dataset is ordered in blocks of clusters

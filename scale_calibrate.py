@@ -3,13 +3,35 @@ import numpy as np
 import argparse
 import imutils
 import statistics
+import pandas as pd
 from matplotlib import pyplot as plt
 
+# TODO add a file output for this or figure something out !
 
 LEFTSIDE = True
 BEE_SIZE = 1.5  # length of bee in cm
 VISUALIZE = True
 OUTFILEPREFIX = 'beesize'
+
+# take inputs
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--image", required=True,
+                help="path to the input video")
+ap.add_argument("-o", "--outdir", required=True,
+                help="path to the out directory")
+ap.add_argument("-l", "--leftside", type=bool, default=True, required=False,
+                help="is the reference card on the left side? default = True")
+ap.add_argument("-s", "--size", type=int, default=1.5, required=False,
+                help="length of bee in cm")
+ap.add_argument("-v", "--visualize", default=False, required=False,
+                help="show visualizations")
+args = vars(ap.parse_args())
+
+LEFTSIDE = args['leftside']
+BEE_SIZE = args['size']  # length of bee in cm
+VISUALIZE = args['visualize']
+OUT_DIR = args['outdir']
+label = args['image'].split('.')[0]
 
 
 def equalizeMe(img_in):
@@ -70,12 +92,6 @@ def detect(c):
 
     return (h, w, shape)
 
-
-# take input as a video
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,
-                help="path to the input image")
-args = vars(ap.parse_args())
 
 # open video
 cap = cv2.VideoCapture(args['image'])
@@ -172,6 +188,11 @@ bee_l = BEE_SIZE*pix_cm*0.47
 bee_w = bee_l*0.4
 
 bee_area = int(bee_l*bee_w)  # in pixels
+
+out_dict = {'pixelspercm': pix_cm, 'bee_len': bee_l,
+            'bee_w': bee_w, 'bee_area': bee_area}
+out_df = pd.DataFrame(out_dict)
+out_df.to_pickle(OUT_DIR+label + '_scale.pkl')
 
 # change later
 print(squares, '\npixels per cm =', pix_cm, '\n bee length =',

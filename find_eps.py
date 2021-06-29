@@ -5,14 +5,31 @@ from sklearn.cluster import DBSCAN
 from matplotlib import pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 from kneed import KneeLocator
-
+import argparse
 
 TIMESCALE = 2
 SAVE = True
 GRAPH = True
 FILENAME = '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/smalltes2t-WaggleDetections.pkl'
+
+
+# take input as a video
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", required=True,
+                help="path to the waggle detections .pkl file")
+ap.add_argument("-s", "--save", type=bool, default=True, required=False,
+                help="save the output, default = True")
+ap.add_argument("-g", "--graph", type=bool, default=False, required=False,
+                help="graph the output, default = False")
+args = vars(ap.parse_args())
+
+
+SAVE = args['save']  # not sure if this handles no input
+GRAPH = args['graph']
+FILENAME = args['input']
 LABEL = FILENAME.split('/')[-1].split('-')[0]
 print(LABEL)
+
 
 waggle_df = pd.read_pickle(FILENAME)
 
