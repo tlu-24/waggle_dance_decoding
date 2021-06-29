@@ -31,7 +31,7 @@ LEFTSIDE = args['leftside']
 BEE_SIZE = args['size']  # length of bee in cm
 VISUALIZE = args['visualize']
 OUT_DIR = args['outdir']
-label = args['image'].split('.')[0]
+label = args['image'].split('.')[0].split('/')[-1]
 
 
 def equalizeMe(img_in):
@@ -128,7 +128,9 @@ if LEFTSIDE:
     crop = image[int(height*3/4):height, 0:width//2]
 else:
     crop = image[int(height*3/4):height, width//2:width]
-cv2.imshow("crop", crop)
+
+if VISUALIZE:
+    cv2.imshow("crop", crop)
 
 # resize it (but not really)
 resized = imutils.resize(crop, width=width)
@@ -137,7 +139,7 @@ ratio = crop.shape[0] / float(resized.shape[0])
 # convert the resized image to grayscale, blur it slightly,
 # and threshold it
 gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+blurred = cv2.GaussianBlur(gray, (1, 1), 0)
 thresh = cv2.threshold(blurred, 128, 255, cv2.THRESH_BINARY_INV)[1]
 
 # find contours in the thresholded image
@@ -189,9 +191,10 @@ bee_w = bee_l*0.4
 
 bee_area = int(bee_l*bee_w)  # in pixels
 
-out_dict = {'pixelspercm': pix_cm, 'bee_len': bee_l,
-            'bee_w': bee_w, 'bee_area': bee_area}
-out_df = pd.DataFrame(out_dict)
+out_dict = {'pixelspercm': [pix_cm], 'bee_len': [bee_l],
+            'bee_w': [bee_w], 'bee_area': [bee_area]}
+out_df = pd.DataFrame(
+    out_dict)
 out_df.to_pickle(OUT_DIR+label + '_scale.pkl')
 
 # change later
