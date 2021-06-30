@@ -12,7 +12,7 @@ ap.add_argument("-i", "--input", required=True,
                 help="path to the input video")
 ap.add_argument("-c", "--contour", type=int, required=True,
                 help="size of the bee waggle contour")
-ap.add_argument("-b", "--blur", default=25, required=False,
+ap.add_argument("-b", "--blur", type=int, default=25, required=False,
                 help="blur radius, usually works best when about half the width of the bee")
 ap.add_argument("-v", "--visualize", default=False, required=False,
                 help="show visualizations")
@@ -176,8 +176,6 @@ while True:
         # q to quit
         if cv2.waitKey(delay_time) & 0xFF == ord('q'):
             break
-    if counter == 1000:
-        break
     if counter % 100 == 0:
         print(counter)
         # plt.imsave('thisone' + str(counter) + '.jpeg',

@@ -32,6 +32,7 @@ print(LABEL)
 
 
 waggle_df = pd.read_pickle(FILENAME)
+print(waggle_df.shape)
 
 # waggle_df['frame'] = waggle_df['frame']*TIMESCALE
 
@@ -60,6 +61,14 @@ eps = kneedle.knee_y
 X = (waggle_df)
 clust1 = DBSCAN(eps=eps, min_samples=6).fit(X)
 waggle_df.loc[:, 'Cluster'] = clust1.labels_
+
+print(waggle_df['Cluster'].unique())
+
+if GRAPH:
+    ploty = waggle_df.plot.scatter(
+        x="x", y="y", c="Cluster", cmap="viridis").invert_yaxis()
+    figgy = ploty.get_figure()
+    figgy.savefig("FULL_clusters_"+LABEL+".png")
 
 if SAVE:
     distances_df.to_csv("NN_eps.csv")

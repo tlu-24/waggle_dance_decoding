@@ -24,18 +24,18 @@ FPS = 24
 # take inputs
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--input", required=True,
-                help="path to the input pkl waggle detections")
+                help="path to the input pkl waggle detections with clusters")
 ap.add_argument("-o", "--outdir", required=True,
                 help="out directory for the json manifest file")
 ap.add_argument("-f", "--fps", type=int, required=True,
                 help="the fps of the video")
-ap.add_argument("-b", "--buffer", default=150, required=False,
+ap.add_argument("-b", "--buffer", type=int, default=150, required=False,
                 help="how many frames long the buffer on either end of the cluster")
 args = vars(ap.parse_args())
 
 FILENAME = args['input']
 OUT_DIR = args['outdir']
-OUT_PREFIX = FILENAME.split('-')[0]
+OUT_PREFIX = FILENAME.split('-')[0].split('/')[-1]
 BUFFER = args['buffer']  # frames
 FPS = args['fps']
 
@@ -47,25 +47,26 @@ FPS = args['fps']
 def make_ranges(starts, ends):
     final_starts = []
     final_ends = []
-    length = []
+    length = []  # in seconds
     labels = [OUT_PREFIX + '_'+str(int(starts[0]/FPS))]
     current_start = starts[0]
-    final_starts.append((current_start-BUFFER)/FPS)
+    final_starts.append(current_start-BUFFER/FPS)
     current_end = ends[0]
 
+    # loop through the ranges, if there is overlap, add it to previous range, else
+    # start a new one
     for si, s in enumerate(starts):
         if s <= current_end + BUFFER:
-            current_end = ends[si]
+            current_end = ends[si] + BUFFER
         else:
-            length.append(((current_end - current_start)/FPS)+BUFFER)
+            length.append(((current_end - current_start)+BUFFER)/FPS)
             final_ends.append(current_end)
-
-            current_start = s - BUFFER/FPS
-            current_end = ends[si]
+            current_start = s - BUFFER
+            current_end = ends[si] + BUFFER
             labels.append(OUT_PREFIX + '_' + str(int(current_start/FPS)))
-            final_starts.append((current_start/FPS))
+            final_starts.append(current_start/FPS)
     final_ends.append(current_end)
-    length.append(((current_end - current_start)/FPS) + BUFFER)
+    length.append(((current_end - current_start) + BUFFER)/FPS)
     return (labels, final_starts, final_ends, length)
 
 
@@ -86,21 +87,14 @@ coord_x = []
 coord_y = []
 names = []
 
+# throw an error here if there is only one cluster
+print('number of clusters:', len(waggle_df['Cluster'].unique()))
+
 # iterate through the clusters
 for c in waggle_df['Cluster'].unique():
 
-    # write to file a new line indicating new cluster
-    out = open(OUT_DIR + 'cluster' + str(c) + '.csv', 'w')
-    out.write('Cluster ' + str(c) + '\n' +
-              '==================================\n')
-
     clust = waggle_df[waggle_df['Cluster'] == c].reset_index()
-    clust.to_csv(out.name)
-    if c == -1:
-        # write to file the "noisy frames" using clust
-        out.writelines(['========================================\n',
-                        'noisy frames\n', '=================================\n'])
-        continue
+
     # Extract values from df
     start = clust.iloc[0, :]['frame']
     end = clust.iloc[-1, :]['frame']
@@ -117,7 +111,7 @@ for c in waggle_df['Cluster'].unique():
     # Get range of frames where waggle occurs
     rang = np.arange(start, end, 1)
     cluster_ranges.append((c, (int(start), int(end))))
-    out.close()
+    # out.close()
 
 # loop through cluster ranges to get places to cut the video
 starts = []
@@ -141,12 +135,15 @@ for ci, c in enumerate(clusters):
         for si, s in enumerate(final_starts):
             if starts[ci] >= s and starts[ci] <= final_ends[si]:
                 names.append(labels[si])
+                break
 
 
-info_dict = {'video': names, 'cluster': clusters,  'frame_start': starts,
+info_dict = {'video': names, 'cluster': clusters,  'frame_start': starts[1:],
              'coord_x': coord_x, 'coord_y': coord_y}
 
 out_dict = {'start_time': final_starts, 'length': lengths, 'rename_to': labels}
+
+print(len(names), len(clusters), len(starts), len(coord_x), len(coord_y))
 
 out_df = pd.DataFrame(out_dict)
 info_df = pd.DataFrame(info_dict)
