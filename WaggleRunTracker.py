@@ -8,17 +8,28 @@ from scipy import interpolate
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--input", required=True,
                 help="path to the input cleaned waggle detection pkl file")
-ap.add_argument("-v", "--visualize", default=False, required=False,
+ap.add_argument("-v", "--video", required=True,
+                help="path to the video that has the waggles")
+ap.add_argument("-V", "--visualize", type=bool, default=False, required=False,
                 help="show visualizations")
+ap.add_argument("-b", "--bbox_info", required=True,
+                help="path to the file with scale information of the bees")
 args = vars(ap.parse_args())
 
 FILENAME = args['input']
 LABEL = FILENAME.split('-')[0]
 VISUALIZE = args['visualize']
+VIDEO = args['video']
+bbox_df = pd.read_pickle(args['bbox_info'])
+print(bbox_df)
+BBOX_SIZE = int(bbox_df['bee_len'])*2
+
+# I'm guessing the problem comes from the bounding box size
 
 # Load dataset
 path = FILENAME
 df = pd.read_pickle(path)
+print(df)
 
 # Finds largest contour within bounding box
 
@@ -137,11 +148,13 @@ def createMask(img):
     mask.fill(255)
     return mask
 
+# TODO: bbox size
+
 
 def anchorInterpolation(bbox, fx, fy, counter):
     # Interpolated bbox
     fx0, fy0 = int(fx(counter)), int(fy(counter))
-    x0, y0, x1, y1 = fx0-30, fy0-30, fx0+30, fy0+30
+    x0, y0, x1, y1 = fx0-BBOX_SIZE, fy0-BBOX_SIZE, fx0+BBOX_SIZE, fy0+BBOX_SIZE
 
     x, y, w, h = bbox
 
@@ -149,7 +162,7 @@ def anchorInterpolation(bbox, fx, fy, counter):
         success = True
     else:
         success = False
-        bbox = fx0-15, fy0-15, 30, 30
+        bbox = fx0-BBOX_SIZE//2, fy0-BBOX_SIZE//2, BBOX_SIZE, BBOX_SIZE
 
     return success, bbox
 
@@ -161,8 +174,9 @@ final_df = pd.DataFrame(columns=[
                         'x', 'y', 'frame', 'contour', 'bbox', 'size', 'angle', 'euclid', 'cluster'])
 # print(df)
 for i in range(len(df['Cluster'].unique())-1):
+    print("ahhhhhhhhhhhh", i)
     clust = df[df['Cluster'] == i].reset_index()
-    print(clust['frame'])
+    # print(clust['frame'])
 
     # Extract values from df
     start = clust.iloc[0, :]['frame']
@@ -176,7 +190,7 @@ for i in range(len(df['Cluster'].unique())-1):
 
     # Setup video
     counter = start
-    cap = cv2.VideoCapture('../test.mp4')
+    cap = cv2.VideoCapture(VIDEO)
     cap.set(1, start)
     ret, frame = cap.read()
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -186,7 +200,9 @@ for i in range(len(df['Cluster'].unique())-1):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (15, 15), 1)
     thresh_min, thresh_max = 120, 220
-    thresh = cv2.threshold(gray, thresh_min, thresh_max, cv2.THRESH_BINARY)[1]
+    thresh = cv2.adaptiveThreshold(gray, 255,
+                                   cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 111, 10)
+    # thresh = cv2.threshold(gray, thresh_min, thresh_max, cv2.THRESH_BINARY)[1]
     # this should probably change to be adaptive thresholding
     kernel = np.ones((2, 2), np.uint8)
     opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
@@ -197,14 +213,15 @@ for i in range(len(df['Cluster'].unique())-1):
     fy = interpolate.interp1d(clust.frame, clust.y, kind='slinear')
 
     # Find contour bounding box
+    # TODO
     x, y = clust.iloc[0, :]['x'], clust.iloc[0]['y']
-    bbox = int(x-15), int(y-15), 30, 30
+    bbox = int(x-BBOX_SIZE//2), int(y-BBOX_SIZE//2), BBOX_SIZE, BBOX_SIZE
     # Skip Cluster if contour cannot be found in first frame
     try:
         contour = findROIContour(opening, bbox)
-        # print("contour:", contour)
+        print("contour:", contour)
         if contour is None:
-            # print('Contour None')
+            print('Contour None')
             contour = findROIContour(thresh, bbox)
             opening = thresh  # For findFullContour
         centre = getContourMoment(contour)
@@ -235,11 +252,15 @@ for i in range(len(df['Cluster'].unique())-1):
 
         if counter % 100 == 0:
             print(counter)
+
+        # TODO potentially add equalization here?
         # Preprocessing
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (15, 15), 1)
-        thresh = cv2.threshold(
-            gray, thresh_min, thresh_max, cv2.THRESH_BINARY)[1]
+        thresh = cv2.adaptiveThreshold(gray, 255,
+                                       cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 111, 10)
+        # thresh = cv2.threshold(
+        #     gray, thresh_min, thresh_max, cv2.THRESH_BINARY)[1]
         kernel = np.ones((2, 2), np.uint8)
         opening = cv2.morphologyEx(
             thresh, cv2.MORPH_OPEN, kernel, iterations=2)
@@ -247,19 +268,19 @@ for i in range(len(df['Cluster'].unique())-1):
 
         # If frame is in df, use df coords as a reference
         if counter not in missing:
-            # print('In DF')
+            print('In DF')
             waggle = clust[clust['frame'] == counter].reset_index()
-            # print(counter, start, end)
+            print(counter, start, end)
             x, y = waggle.loc[0, 'x'], waggle.loc[0, 'y']
             bbox = x-15, y-15, 30, 30
-            # print(prev_bbox, bbox)
+            print(prev_bbox, bbox)
 
         # If frame not in df, use previous bounding box as a reference
         if counter in missing:
-            # print('Missing')
+            print('Missing')
             bbox = prev_bbox[0] - 5, prev_bbox[1] - \
                 5, prev_bbox[2] + 10, prev_bbox[3] + 10
-            # print(prev_bbox, bbox)
+            print(prev_bbox, bbox)
 
         # If bbox goes out of frame, end tracking
         if bbox[0] < 0 or bbox[0]+bbox[2] > width or bbox[1] < 0 or bbox[1]+bbox[3] > height:
@@ -277,16 +298,17 @@ for i in range(len(df['Cluster'].unique())-1):
         # Find contour from bbox. If None, lower threshold inside the bounding box
         contour = findROIContour(opening, bbox)
         if contour is None:
-            # print('Contour None')
+            print('Contour None 301')
             contour = findROIContour(thresh, bbox)
             opening = thresh  # For findFullContour
         # If contour still None, lower threshold value
         low = thresh_min
         # or too small
         while contour is None or cv2.contourArea(contour) <= 80:
-            # print('Contour still none')
+            print('Contour still none')
             low -= 5
             thresh = cv2.threshold(gray, low, thresh_max, cv2.THRESH_BINARY)[1]
+
             opening[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])
                     ] = thresh[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
             contour = findROIContour(opening, bbox)
@@ -296,7 +318,10 @@ for i in range(len(df['Cluster'].unique())-1):
         roi_contour = contour  # Save for use in findFullContour failure
         # Readjust centre and find contour in centred ROI
         centre = getContourMoment(contour)
-        bbox = centre[0]-15, centre[1]-15, 30, 30
+
+        # TODO
+        bbox = centre[0]-BBOX_SIZE//2, centre[1] - \
+            BBOX_SIZE//2, BBOX_SIZE, BBOX_SIZE
         contour = findROIContour(opening, bbox)
         # If new bbox goes out of frame, end tracking
         if bbox[0] < 0 or bbox[0]+bbox[2] > width or bbox[1] < 0 or bbox[1]+bbox[3] > height:
@@ -304,9 +329,11 @@ for i in range(len(df['Cluster'].unique())-1):
             final_df.loc[len(final_df)] = 0
             break
         low = thresh_min
+
+        # TODO: thresh
         # or too small
         while contour is None or cv2.contourArea(contour) <= 80:
-            # print('Contour still none')
+            print('Contour still none 336')
             low -= 5
             thresh = cv2.threshold(gray, low, thresh_max, cv2.THRESH_BINARY)[1]
             opening[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]
@@ -329,6 +356,7 @@ for i in range(len(df['Cluster'].unique())-1):
             contour = findROIContour(opening, bbox)
             # Remove once fixed
             low = thresh_min
+            #TODO: thresholds
             while contour is None:  # or too small
                 # print('Contour still none')
                 low -= 5

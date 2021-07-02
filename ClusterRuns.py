@@ -84,6 +84,7 @@ def findOutliers(x_slopes, y_slopes, x_median, y_median):
 
 
 df = pd.read_pickle(FILENAME)
+print(df)
 
 
 # get mean for x, y, frame of each waggle run

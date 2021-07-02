@@ -8,10 +8,10 @@ from matplotlib import pyplot as plt
 
 # TODO add a file output for this or figure something out !
 
-LEFTSIDE = True
-BEE_SIZE = 1.5  # length of bee in cm
-VISUALIZE = True
-OUTFILEPREFIX = 'beesize'
+# LEFTSIDE = True
+# BEE_SIZE = 1.5  # length of bee in cm
+# VISUALIZE = True
+# OUTFILEPREFIX = 'beesize'
 
 # take inputs
 ap = argparse.ArgumentParser()
@@ -19,8 +19,8 @@ ap.add_argument("-i", "--image", required=True,
                 help="path to the input video")
 ap.add_argument("-o", "--outdir", required=True,
                 help="path to the out directory")
-ap.add_argument("-l", "--leftside", type=bool, default=True, required=False,
-                help="is the reference card on the left side? default = True")
+ap.add_argument("-l", "--leftside", type=bool, required=True,
+                help="is the reference card on the left side?")
 ap.add_argument("-s", "--size", type=int, default=1.5, required=False,
                 help="length of bee in cm")
 ap.add_argument("-v", "--visualize", default=False, required=False,
@@ -30,6 +30,7 @@ args = vars(ap.parse_args())
 LEFTSIDE = args['leftside']
 BEE_SIZE = args['size']  # length of bee in cm
 VISUALIZE = args['visualize']
+print(VISUALIZE)
 OUT_DIR = args['outdir']
 label = args['image'].split('.')[0].split('/')[-1]
 
@@ -127,6 +128,7 @@ width = image.shape[1]
 if LEFTSIDE:
     crop = image[int(height*3/4):height, 0:width//2]
 else:
+    print('ah')
     crop = image[int(height*3/4):height, width//2:width]
 
 if VISUALIZE:
@@ -182,6 +184,10 @@ for c in cnts:
         cv2.putText(crop, shape + str(h) + " "+str(int(w)), (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
                     0.5, (0, 255, 255), 2)
 
+if VISUALIZE:
+    cv2.imshow("image", crop)
+    cv2.waitKey(0)
+
 # the median largest square is probably a reference square (which is 1cm in width)
 pix_cm = statistics.median(maxsquares)
 
@@ -200,7 +206,3 @@ out_df.to_pickle(OUT_DIR+label + '_scale.pkl')
 # change later
 print(squares, '\npixels per cm =', pix_cm, '\n bee length =',
       bee_l, '\n bee width =', bee_w, '\n bee area =', bee_area)
-
-if VISUALIZE:
-    cv2.imshow("image", crop)
-    cv2.waitKey(0)

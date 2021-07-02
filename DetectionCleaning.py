@@ -81,7 +81,7 @@ df.fillna(0, inplace=True)
 quant = df.euclid.quantile(0.9)
 df = df[df['euclid'] < quant]
 
-print(df)
+# print(df)
 # Save cleaned dataset
 df.to_pickle('{}-WaggleDetections_Cleaned.pkl'.format(LABEL))
 

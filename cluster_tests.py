@@ -5,7 +5,7 @@ from sklearn.cluster import DBSCAN
 from matplotlib import pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 
-LABEL = 'maya'
+LABEL = '4k'
 TIMESCALE = 2
 GRAPH = True
 SEPARATE = False
@@ -13,7 +13,8 @@ EPS = 116
 MINPTS = 6
 
 # read potential waggles
-waggle_df = pd.read_pickle('potential_waggles.pkl')
+waggle_df = pd.read_pickle(
+    '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/waggle_dance_decoding/Col3_061021_1124_C0011_segment-WaggleDetections.pkl')
 waggle_df_oldtime = waggle_df
 
 # Scale time
@@ -21,7 +22,7 @@ waggle_df_oldtime = waggle_df
 
 # cluster the potential waggles
 X = (waggle_df)
-clust1 = DBSCAN(eps=63, min_samples=6).fit(X)
+clust1 = DBSCAN(eps=61, min_samples=6).fit(X)
 waggle_df.loc[:, 'Cluster'] = clust1.labels_
 waggle_df_oldtime.loc[:, 'Cluster'] = clust1.labels_
 
@@ -55,7 +56,7 @@ if GRAPH:
         if c == -1:
             i = -1
             j = -1
-        print(c, i, j)
+        # print(c, i, j)
         # cluster_df.plot(ax=axes[j, i], x='x', y='y', cmap='viridis')
         cluster_df.plot.scatter(
             ax=axes[j, i], x='x', y='y', c='frame', cmap='viridis')
@@ -74,10 +75,7 @@ if GRAPH:
 
     plot.set_title('Cluster' + str(c))
     # fig = axs.get_figure()
-    # ploty = waggle_df.plot.scatter(
-    #     x="x", y="y", c="Cluster", cmap="viridis").invert_yaxis()
-    # figgy = ploty.get_figure()
-    # figgy.savefig("./cluster_plots/FULL_clusters_"+LABEL+".png")
+
     # fig.savefig("./cluster_plots/clusters_"+LABEL+".png")
     fig.savefig("./cluster_plots/AHHH.png")
 

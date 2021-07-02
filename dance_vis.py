@@ -1,15 +1,16 @@
 import cv2
 import numpy as np
 import pandas as pd
+import sys
 
 waggle_df = pd.read_pickle(
-    '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/smalltes2t-findepscluster_19_6.pkl')
-path = '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/split_vid/smalltes2t.mp4'
+    '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/waggle_dance_decoding/smalltes2t-findepscluster_19_6.pkl')
+path = '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/split_vid/smalltes2t.MP4'
 PRINT = False
 SAVE = True
 OUT_PREFIX = 'vis'
 LABEL = path.split('/')[-1].split('.')[0].split('_')
-VIS = True
+VIS = False
 
 # read video
 cap = cv2.VideoCapture(path)
@@ -35,6 +36,10 @@ rgb = [(252, 186, 3), (252, 57, 3), (111, 252, 3), (3, 252, 194),
 while True:
     counter += 1
     ret, frame = cap.read()
+
+    if counter == 3:
+        np.set_printoptions(threshold=sys.maxsize)
+        print(frame)
 
     # Break when video ends
     if ret is False:
@@ -69,6 +74,9 @@ while True:
             break
     if counter % 100 == 0:
         print(counter)
+
+    if counter == 1000:
+        break
 # save video here
 
 
