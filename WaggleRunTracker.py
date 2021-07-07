@@ -84,7 +84,9 @@ def findFullContour(thresh, centre):
             #    pass
             break
         else:
-            final_contour = findROIContour(thresh, (x-10, y-10, 20, 20))
+            # used to be 10, 10, 20, 20, not sure why it wasn't 15 and 30 like other parts ....
+            final_contour = findROIContour(
+                thresh, (x-BBOX_SIZE//2, y-BBOX_SIZE//2, BBOX_SIZE, BBOX_SIZE))
     # print(final_contour)
     return final_contour
 
@@ -221,7 +223,7 @@ for i in range(len(df['Cluster'].unique())-1):
         contour = findROIContour(opening, bbox)
         print("contour:", contour)
         if contour is None:
-            print('Contour None')
+            print('Contour None 1')
             contour = findROIContour(thresh, bbox)
             opening = thresh  # For findFullContour
         centre = getContourMoment(contour)

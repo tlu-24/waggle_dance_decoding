@@ -52,7 +52,11 @@ distances_df['A'] = list(range(len(distances_df.index)))
 # these values might need to be changed based on data ... ? maybe not though
 kneedle = KneeLocator(distances_df['A'], distances_df['distance'], S=10.0,
                       curve="convex", direction="increasing", interp_method='interp1d')
-kneedle.plot_knee()
+if GRAPH:
+    kneedle.plot_knee()
+    plot = distances_df['distance'].plot().set_title(
+        "6 Nearest Neighbors for Waggle Detections")
+    plt.savefig(LABEL+"knee")
 
 # save output from here
 print(kneedle.knee_y)
@@ -65,10 +69,10 @@ waggle_df.loc[:, 'Cluster'] = clust1.labels_
 print(waggle_df['Cluster'].unique())
 
 if GRAPH:
+    # waggle_df['Cluster'] = waggle_df['Cluster'].astype('category')
     ploty = waggle_df.plot.scatter(
-        x="x", y="y", c="Cluster", cmap="viridis").invert_yaxis()
-    figgy = ploty.get_figure()
-    figgy.savefig("FULL_clusters_"+LABEL+".png")
+        x="x", y="y", c="Cluster", cmap="viridis", title="Detected Waggles and Clusters").invert_yaxis()
+    plt.savefig("FULL_clusters_"+LABEL+".png")
 
 if SAVE:
     distances_df.to_csv("NN_eps.csv")
@@ -76,6 +80,3 @@ if SAVE:
         '{}-findepscluster_{}_{}.pkl'.format(LABEL, int(eps), 6))
 
 # kneedle.plot()
-# plot = distances_df.plot()
-# figgy = plot.get_figure()
-# figgy.savefig(LABEL+"knee")

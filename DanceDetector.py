@@ -10,15 +10,18 @@ from sklearn.neighbors import NearestNeighbors
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--input", required=True,
                 help="path to the input video")
-ap.add_argument("-c", "--contour", type=int, required=True,
-                help="size of the bee waggle contour")
+ap.add_argument("-c", "--contour", required=True,
+                help="path to pkl with scale information aobut the bees and size of the bee waggle contour")
 ap.add_argument("-b", "--blur", type=int, default=25, required=False,
                 help="blur radius, usually works best when about half the width of the bee")
 ap.add_argument("-v", "--visualize", default=False, required=False,
                 help="show visualizations")
 args = vars(ap.parse_args())
 
-BEE_CONTOUR = args['contour']
+contour_df = pd.read_pickle(args['contour'])
+
+BEE_CONTOUR = contour_df['bee_area'][0]
+print(BEE_CONTOUR)
 BLUR = args['blur']
 VISUALIZE = args['visualize']
 FILENAME = args['input']
@@ -123,6 +126,8 @@ while True:
     counter += 1
     ret, frame = cap.read()
 
+    #            cv2.cvtColor(eq_frame, cv2.COLOR_RGB2BGR))
+
     # Break when video ends
     if ret is False:
         break
@@ -135,9 +140,18 @@ while True:
     gray_blur = cv2.GaussianBlur(gray, (BLUR, BLUR), 0)
     thresh = cv2.adaptiveThreshold(gray_blur, 255,
                                    cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 111, 10)
-    # thresh = cv2.threshold(gray_blur, 150, 230, cv2.THRESH_BINARY)[1]
-    # thresh = cv2.adaptiveThreshold(gray_blur, 230, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #                                cv2.THRESH_BINARY, 199, 2)
+
+    # if counter == 51:
+    #     plt.imsave('frame' + str(counter) + '.jpeg',
+    #                cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    #     plt.imsave('eqframe' + str(counter) + '.jpeg',
+    #                cv2.cvtColor(eq_frame, cv2.COLOR_RGB2BGR))
+    #     plt.imsave('grayframe' + str(counter) + '.jpeg',
+    #                cv2.cvtColor(gray, cv2.COLOR_RGB2BGR))
+    #     plt.imsave('grayblur' + str(counter) + '.jpeg',
+    #                cv2.cvtColor(gray_blur, cv2.COLOR_RGB2BGR))
+    #     plt.imsave('thresh' + str(counter) + '.jpeg',
+    #                cv2.cvtColor(thresh, cv2.COLOR_RGB2BGR))
 
     # If first frame, set current frame as prev_frame
     if prev_frame is None:
@@ -149,6 +163,10 @@ while True:
     _, hierarchy = cv2.findContours(
         frame_diff, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
+    # if counter == 51:
+    #     plt.imsave('diff' + str(counter) + '.jpeg',
+    #                cv2.cvtColor(frame_diff, cv2.COLOR_RGB2BGR))
+
     # Catch blank images and skip frame
     if hierarchy is None:
         continue
@@ -157,8 +175,8 @@ while True:
         potential_waggles += find_waggles
 
     # Frame Counter
-    # cv2.putText(thresh, str(counter), (40, 40),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 1, (150, 0, 0), 2)
+    cv2.putText(thresh, str(counter), (40, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (150, 0, 0), 2)
 
     if VISUALIZE:
         # Display the resulting frame
