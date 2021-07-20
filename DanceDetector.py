@@ -1,3 +1,7 @@
+# DanceDetector.py
+# need link to Jordan Reese's github
+# Uses foreground detection for waggle detection in video
+
 import cv2
 import numpy as np
 import pandas as pd
@@ -20,8 +24,7 @@ args = vars(ap.parse_args())
 
 contour_df = pd.read_pickle(args['contour'])
 
-BEE_CONTOUR = contour_df['bee_area'][0]
-print(BEE_CONTOUR)
+BEE_CONTOUR = contour_df['bee_area'][0] * 1.5
 BLUR = args['blur']
 VISUALIZE = args['visualize']
 FILENAME = args['input']
@@ -99,9 +102,6 @@ def findChildContours(frame, frame_count):
 
 
 ### Motion Detector ###
-# path = '../test.mp4'
-# path = './split_vid/col31.MP4'
-# path = './split_vid/C00020..MP4'
 path = FILENAME
 
 cap = cv2.VideoCapture(path)
@@ -162,10 +162,6 @@ while True:
     frame_diff = cv2.absdiff(current_frame, prev_frame)
     _, hierarchy = cv2.findContours(
         frame_diff, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-
-    # if counter == 51:
-    #     plt.imsave('diff' + str(counter) + '.jpeg',
-    #                cv2.cvtColor(frame_diff, cv2.COLOR_RGB2BGR))
 
     # Catch blank images and skip frame
     if hierarchy is None:
