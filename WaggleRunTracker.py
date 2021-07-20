@@ -1,3 +1,7 @@
+# WaggleRunTracker.py
+# from jordan reese (need to get link)
+# Tracks bees (ideally) for the range of the entire waggle run, gets orientation and angle info
+
 import pandas as pd
 import numpy as np
 import argparse
@@ -21,15 +25,13 @@ LABEL = FILENAME.split('-')[0]
 VISUALIZE = args['visualize']
 VIDEO = args['video']
 bbox_df = pd.read_pickle(args['bbox_info'])
-print(bbox_df)
 BBOX_SIZE = int(bbox_df['bee_len'])*2
+SAVE = True
 
-# I'm guessing the problem comes from the bounding box size
 
 # Load dataset
 path = FILENAME
 df = pd.read_pickle(path)
-print(df)
 
 # Finds largest contour within bounding box
 
@@ -51,9 +53,11 @@ def findROIContour(thresh, bbox):
     # print(contour_areas)
     if contour_areas is None or len(contour_areas) == 0:
         final_c = [None, None]
+        print("ROIcontour none")
     else:
         # Find largest contour in box
         final_c = max(contour_areas, key=lambda x: x[0])
+        # print("ROIcontour", final_c[1])
     return final_c[1]
 
 # Find Centre coordinates of contour
@@ -79,13 +83,14 @@ def findFullContour(thresh, centre):
         dist = cv2.pointPolygonTest(c, (x, y), False)
         if dist == 1.0:
             final_contour = c
-            #print('Contour Found')
             # if cv2.contourArea(c) > size * 1.5:
             #    pass
             break
         else:
-            final_contour = findROIContour(thresh, (x-10, y-10, 20, 20))
-    # print(final_contour)
+
+            final_contour = findROIContour(
+                thresh, (x-BBOX_SIZE//2, y-BBOX_SIZE//2, BBOX_SIZE, BBOX_SIZE))
+
     return final_contour
 
 # Fits a bounding box tightly around the contour
@@ -148,8 +153,6 @@ def createMask(img):
     mask.fill(255)
     return mask
 
-# TODO: bbox size
-
 
 def anchorInterpolation(bbox, fx, fy, counter):
     # Interpolated bbox
@@ -169,14 +172,15 @@ def anchorInterpolation(bbox, fx, fy, counter):
 
 df.drop('index', axis=1, inplace=True)
 
+
 # Create output dataframe
 final_df = pd.DataFrame(columns=[
                         'x', 'y', 'frame', 'contour', 'bbox', 'size', 'angle', 'euclid', 'cluster'])
-# print(df)
+
 for i in range(len(df['Cluster'].unique())-1):
     print("ahhhhhhhhhhhh", i)
     clust = df[df['Cluster'] == i].reset_index()
-    # print(clust['frame'])
+    print(clust['frame'])
 
     # Extract values from df
     start = clust.iloc[0, :]['frame']
@@ -191,42 +195,48 @@ for i in range(len(df['Cluster'].unique())-1):
     # Setup video
     counter = start
     cap = cv2.VideoCapture(VIDEO)
+    print(cap.isOpened())
     cap.set(1, start)
     ret, frame = cap.read()
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if SAVE:
+        out = cv2.VideoWriter(LABEL+'_tracked'+str(i)+'.mp4', cv2.VideoWriter_fourcc(
+            'm', 'p', '4', 'v'), 10, (width, height))
 
     # Preprocessing
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (15, 15), 1)
+    gray = cv2.GaussianBlur(gray, (45, 45), 1)
     thresh_min, thresh_max = 120, 220
     thresh = cv2.adaptiveThreshold(gray, 255,
-                                   cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 111, 10)
-    # thresh = cv2.threshold(gray, thresh_min, thresh_max, cv2.THRESH_BINARY)[1]
-    # this should probably change to be adaptive thresholding
+                                   cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 121, 1)
+
+    # morphological operations
     kernel = np.ones((2, 2), np.uint8)
     opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
-    opening = cv2.erode(opening, kernel, iterations=1)
-
+    # opening = cv2.erode(opening, kernel, iterations=1)
+    cv2.imwrite("opening.jpeg", opening)
+    cv2.imwrite("opening_th.jpeg", thresh)
     # Interpolation functions
     fx = interpolate.interp1d(clust.frame, clust.x, kind='slinear')
     fy = interpolate.interp1d(clust.frame, clust.y, kind='slinear')
 
     # Find contour bounding box
-    # TODO
     x, y = clust.iloc[0, :]['x'], clust.iloc[0]['y']
+    print(x, y)
     bbox = int(x-BBOX_SIZE//2), int(y-BBOX_SIZE//2), BBOX_SIZE, BBOX_SIZE
     # Skip Cluster if contour cannot be found in first frame
     try:
         contour = findROIContour(opening, bbox)
-        print("contour:", contour)
+        print("contour")
         if contour is None:
-            print('Contour None')
+            print('Contour None 1')
             contour = findROIContour(thresh, bbox)
             opening = thresh  # For findFullContour
         centre = getContourMoment(contour)
         contour = findFullContour(opening, centre)
     except:
+        print("********************************")
         continue
     # If full contour is too large, use only the contour within the bounding box
     # if cv2.contourArea(contour) > clust['size'].max():
@@ -234,7 +244,7 @@ for i in range(len(df['Cluster'].unique())-1):
     #     print(contour)
     rect, box = getFittedBox(contour)
     bbox = rotatedBoxConverter(box)
-
+    print(rect, box, bbox)
     # Initialise variables
     prev_bbox = bbox
     prev_centre = centre
@@ -246,25 +256,23 @@ for i in range(len(df['Cluster'].unique())-1):
 
     while counter < end:
         counter += 1
+        print(counter)
         ret, frame = cap.read()
         if ret is False:
+            print('ret is false')
             break
 
-        if counter % 100 == 0:
-            print(counter)
-
-        # TODO potentially add equalization here?
         # Preprocessing
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (15, 15), 1)
-        thresh = cv2.adaptiveThreshold(gray, 255,
-                                       cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 111, 10)
-        # thresh = cv2.threshold(
-        #     gray, thresh_min, thresh_max, cv2.THRESH_BINARY)[1]
+        gray_blur = cv2.GaussianBlur(gray, (9, 9), 0)
+        thresh = cv2.adaptiveThreshold(gray_blur, 255,
+                                       cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 121, 1)
         kernel = np.ones((2, 2), np.uint8)
+
         opening = cv2.morphologyEx(
             thresh, cv2.MORPH_OPEN, kernel, iterations=2)
         opening = cv2.erode(opening, kernel, iterations=1)
+        cv2.imshow("opening", opening)
 
         # If frame is in df, use df coords as a reference
         if counter not in missing:
@@ -272,19 +280,21 @@ for i in range(len(df['Cluster'].unique())-1):
             waggle = clust[clust['frame'] == counter].reset_index()
             print(counter, start, end)
             x, y = waggle.loc[0, 'x'], waggle.loc[0, 'y']
-            bbox = x-15, y-15, 30, 30
+            bbox = int(x-BBOX_SIZE//2), int(y-BBOX_SIZE //
+                                            2), BBOX_SIZE, BBOX_SIZE
             print(prev_bbox, bbox)
 
         # If frame not in df, use previous bounding box as a reference
         if counter in missing:
             print('Missing')
-            bbox = prev_bbox[0] - 5, prev_bbox[1] - \
-                5, prev_bbox[2] + 10, prev_bbox[3] + 10
-            print(prev_bbox, bbox)
+            bbox = prev_bbox[0] - int(BBOX_SIZE//2), prev_bbox[1] - \
+                int(BBOX_SIZE//2), prev_bbox[2] + \
+                BBOX_SIZE, prev_bbox[3] + BBOX_SIZE
+            # print(prev_bbox, bbox)
 
         # If bbox goes out of frame, end tracking
         if bbox[0] < 0 or bbox[0]+bbox[2] > width or bbox[1] < 0 or bbox[1]+bbox[3] > height:
-            # print('Object out of bounds')
+            print('Object out of bounds')
             final_df.loc[len(final_df)] = 0
             break
 
@@ -319,7 +329,6 @@ for i in range(len(df['Cluster'].unique())-1):
         # Readjust centre and find contour in centred ROI
         centre = getContourMoment(contour)
 
-        # TODO
         bbox = centre[0]-BBOX_SIZE//2, centre[1] - \
             BBOX_SIZE//2, BBOX_SIZE, BBOX_SIZE
         contour = findROIContour(opening, bbox)
@@ -330,7 +339,6 @@ for i in range(len(df['Cluster'].unique())-1):
             break
         low = thresh_min
 
-        # TODO: thresh
         # or too small
         while contour is None or cv2.contourArea(contour) <= 80:
             print('Contour still none 336')
@@ -339,11 +347,10 @@ for i in range(len(df['Cluster'].unique())-1):
             opening[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]
                     ] = thresh[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]]
             contour = findROIContour(opening, bbox)
-            # opening = dilate # For findFullContour
             if low < 60:
                 break
         rect, box = getFittedBox(contour)
-        #bbox = rotatedBoxConverter(box)
+        bbox = rotatedBoxConverter(box)
 
         # Compare bbox to interpolated bbox
         found, bbox = anchorInterpolation(bbox, fx, fy, counter)
@@ -356,7 +363,6 @@ for i in range(len(df['Cluster'].unique())-1):
             contour = findROIContour(opening, bbox)
             # Remove once fixed
             low = thresh_min
-            #TODO: thresholds
             while contour is None:  # or too small
                 # print('Contour still none')
                 low -= 5
@@ -365,13 +371,11 @@ for i in range(len(df['Cluster'].unique())-1):
                 opening[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]
                         ] = thresh[bbox[1]:bbox[1]+bbox[3], bbox[0]:bbox[0]+bbox[2]]
                 contour = findROIContour(opening, bbox)
-                # opening = dilate # For findFullContour
                 if low < 60:
                     break
             rect, box = getFittedBox(contour)
 
             rect, box = getFittedBox(contour)
-            # print(rect[-1])
             bbox = rotatedBoxConverter(box)
 
         # Get angle and contour size
@@ -392,6 +396,8 @@ for i in range(len(df['Cluster'].unique())-1):
             cv2.imshow("Tracking", frame)
             cv2.imshow("Threshold", opening)
             cv2.waitKey(1)
+        if SAVE:
+            out.write(frame)
 
         # Euclidean distance between previous and current centre of contour
         euclid = np.sqrt(
@@ -400,7 +406,6 @@ for i in range(len(df['Cluster'].unique())-1):
         # Fill output df
         final_df.loc[len(final_df)] = [centre[0], centre[1],
                                        counter, contour, bbox, size, angle, euclid, cluster]
-
         # Track direction of box movement
         movement = moveDirection(prev_bbox, bbox)
         prev_centre = centre
@@ -409,6 +414,8 @@ for i in range(len(df['Cluster'].unique())-1):
         total, avg = avgArea(bbox, total, (counter-start))
 
     cap.release()
+    if SAVE:
+        out.release()
 
     if VISUALIZE:
         cv2.destroyAllWindows()

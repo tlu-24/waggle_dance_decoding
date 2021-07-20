@@ -1,5 +1,6 @@
-# This file provides methods and runs a script that segments a video based on waggle detections from "DanceDetector.py"
-# to help make manual decoding easier.
+# manual_aid.py
+# This file provides methods and runs a script that creates a manifest file for "split.py"
+# based on waggle detections from "DanceDetector.py" to help make manual decoding easier.
 
 # imports
 import cv2
@@ -14,14 +15,8 @@ import os
 import os.path
 import argparse
 
-FILENAME = 'WaggleDetections-.pkl'
-DRAW_BOXES = False
-OUT_DIR = './manual_detection_aid/'
-OUT_PREFIX = 'segment'
-BUFFER = 100  # frames
-FPS = 24
 
-# take inputs
+# take inputs from the terminal
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--input", required=True,
                 help="path to the input pkl waggle detections with clusters")
@@ -39,25 +34,28 @@ OUT_PREFIX = FILENAME.split('-')[0].split('/')[-1]
 BUFFER = args['buffer']  # frames
 FPS = args['fps']
 
-# this function takes 2 lists of frames to start and end
+
+# this function takes 2 lists of frames with the starts and ends of ranges
 # and does the appropriate changes with correct overlap to output
 # info for the json file (start, length, new label)
-
 
 def make_ranges(starts, ends):
     final_starts = []
     final_ends = []
     length = []  # in seconds
+    # name of output videos
     labels = [OUT_PREFIX + '_'+str(int(starts[0]/FPS))]
-    current_start = starts[0]
+    current_start = starts[0]  # in frames
     final_starts.append(current_start-BUFFER/FPS)
     current_end = ends[0]
 
     # loop through the ranges, if there is overlap, add it to previous range, else
     # start a new one
     for si, s in enumerate(starts):
+        # if overlap, update current_end to accommodate for buffer
         if s <= current_end + BUFFER:
             current_end = ends[si] + BUFFER
+        # else start a new range, update current_end and current_start appropriately
         else:
             length.append(((current_end - current_start)+BUFFER)/FPS)
             final_ends.append(current_end)
@@ -77,9 +75,6 @@ waggle_df = waggle_df.sort_values(
     by=['Cluster', 'frame']).reset_index().drop(['index'], axis=1)
 
 
-# do some sort of clustering, probably just use the cluster number to get start and stop frames
-
-# need to add time handling!!!
 cluster_ranges = []
 
 clusters = []
@@ -93,6 +88,7 @@ print('number of clusters:', len(waggle_df['Cluster'].unique()))
 # iterate through the clusters
 for c in waggle_df['Cluster'].unique():
 
+    # get info about cluster from dataframe
     clust = waggle_df[waggle_df['Cluster'] == c].reset_index()
 
     # Extract values from df
@@ -111,7 +107,7 @@ for c in waggle_df['Cluster'].unique():
     # Get range of frames where waggle occurs
     rang = np.arange(start, end, 1)
     cluster_ranges.append((c, (int(start), int(end))))
-    # out.close()
+
 
 # loop through cluster ranges to get places to cut the video
 starts = []
@@ -124,7 +120,7 @@ for i, (c, (start, end)) in enumerate(cluster_ranges):
     ends.append(int(end))
     label.append(c)
 
-
+# get new ranges based on overlaps in time of clusters
 labels, final_starts, final_ends, lengths = make_ranges(starts, ends)
 
 # get which video clusters are a part of
@@ -137,13 +133,12 @@ for ci, c in enumerate(clusters):
                 names.append(labels[si])
                 break
 
-
+# set up for dataframes
 info_dict = {'video': names, 'cluster': clusters,  'frame_start': starts[1:],
              'coord_x': coord_x, 'coord_y': coord_y}
 
 out_dict = {'start_time': final_starts, 'length': lengths, 'rename_to': labels}
 
-print(len(names), len(clusters), len(starts), len(coord_x), len(coord_y))
 
 out_df = pd.DataFrame(out_dict)
 info_df = pd.DataFrame(info_dict)

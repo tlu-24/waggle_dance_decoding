@@ -1,5 +1,7 @@
-# From https://github.com/beelabhmc/ant_tracker/blob/master/scripts/split.py
+# split.py
+# adapted with slight modification from https://github.com/beelabhmc/ant_tracker/blob/master/scripts/split.py
 # Thanks Jarred
+# Wrapper file for calls to ffmpeg to help with splitting of videos
 
 import csv
 import subprocess
@@ -12,8 +14,6 @@ import argparse
 import datetime
 import pandas as pd
 
-# import constants
-import metadata
 
 re_length = re.compile(r'Duration: (\d{2}):(\d{2}):(\d{2})\.\d+,')
 
@@ -137,6 +137,20 @@ def by_manifest(filename, destination, manifest, vcodec='copy', acodec='copy',
                          date_to_string(date)+'_'+videoname + '.pkl')
 
 
+def get_video_duration(input_video):
+
+    duration_regex = re.compile(r'^duration=([0-9]+[.][0-9]+)$', re.MULTILINE)
+    """Returns the duration of the given video."""
+    cmd = f'ffprobe -show_streams {input_video}'.split()
+    output = subprocess.run(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT).stdout.decode()
+    try:
+        return float(re.search(duration_regex, output).group(1))
+    except AttributeError as e:
+        raise RuntimeError('Unparsable ffprobe output:\n{}\nfrom command:\n{}'
+                           .format(output, ' '.join(cmd))) from e
+
+
 def by_seconds(filename, destination, split_length, vcodec='copy',
                acodec='copy', extra='', min_segment_length=20, **kwargs):
     if not os.path.isdir(destination):
@@ -145,7 +159,7 @@ def by_seconds(filename, destination, split_length, vcodec='copy',
         print('Split length must be positive')
         raise SystemExit
     try:
-        video_length = metadata.get_video_duration(filename)
+        video_length = get_video_duration(filename)
     except RuntimeError as re:
         print("Can't determine video length, copying video without splitting")
         destination = os.path.join(destination, '0.mp4')

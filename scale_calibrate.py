@@ -1,3 +1,7 @@
+# scale_calibrate.py
+# this file takes a bee video, and extracts the size of the checkerboard pattern on the
+# reference card, then calculates the dimensions and area of bee in pixels
+
 import cv2
 import numpy as np
 import argparse
@@ -6,12 +10,6 @@ import statistics
 import pandas as pd
 from matplotlib import pyplot as plt
 
-# TODO add a file output for this or figure something out !
-
-# LEFTSIDE = True
-# BEE_SIZE = 1.5  # length of bee in cm
-# VISUALIZE = True
-# OUTFILEPREFIX = 'beesize'
 
 # take inputs
 ap = argparse.ArgumentParser()
@@ -27,12 +25,13 @@ ap.add_argument("-v", "--visualize", default=False, required=False,
                 help="show visualizations")
 args = vars(ap.parse_args())
 
-LEFTSIDE = args['leftside']
+LEFTSIDE = args['leftside']  # is the reference card on the left side
 BEE_SIZE = args['size']  # length of bee in cm
-VISUALIZE = args['visualize']
-print(VISUALIZE)
-OUT_DIR = args['outdir']
-label = args['image'].split('.')[0].split('/')[-1]
+VISUALIZE = args['visualize']  # show visualizations
+OUT_DIR = args['outdir']  # directory for output
+label = args['image'].split('.')[0].split('/')[-1]  # output filename
+
+# Performs histogram equalization on a color image
 
 
 def equalizeMe(img_in):
@@ -43,12 +42,12 @@ def equalizeMe(img_in):
     h_b, bin_b = np.histogram(b.flatten(), 256, [0, 256])
     h_g, bin_g = np.histogram(g.flatten(), 256, [0, 256])
     h_r, bin_r = np.histogram(r.flatten(), 256, [0, 256])
-# calculate cdf
+    # calculate cdf
     cdf_b = np.cumsum(h_b)
     cdf_g = np.cumsum(h_g)
     cdf_r = np.cumsum(h_r)
 
-# mask all pixels with value=0 and replace it with mean of the pixel values
+    # mask all pixels with value=0 and replace it with mean of the pixel values
     cdf_m_b = np.ma.masked_equal(cdf_b, 0)
     cdf_m_b = (cdf_m_b - cdf_m_b.min())*255/(cdf_m_b.max()-cdf_m_b.min())
     cdf_final_b = np.ma.filled(cdf_m_b, 0).astype('uint8')
@@ -59,13 +58,13 @@ def equalizeMe(img_in):
     cdf_m_r = np.ma.masked_equal(cdf_r, 0)
     cdf_m_r = (cdf_m_r - cdf_m_r.min())*255/(cdf_m_r.max()-cdf_m_r.min())
     cdf_final_r = np.ma.filled(cdf_m_r, 0).astype('uint8')
-# merge the images in the three channels
+    # merge the images in the three channels
     img_b = cdf_final_b[b]
     img_g = cdf_final_g[g]
     img_r = cdf_final_r[r]
 
     img_out = cv2.merge((img_b, img_g, img_r))
-# validation
+    # validation
     equ_b = cv2.equalizeHist(b)
     equ_g = cv2.equalizeHist(g)
     equ_r = cv2.equalizeHist(r)
@@ -73,6 +72,7 @@ def equalizeMe(img_in):
     # print(equ)
     #cv2.imwrite('output_name.png', equ)
     return img_out
+
 # Find large child contours in the frame and return the x,y coordinates and the frame in which the contour was found
 
 
@@ -101,7 +101,8 @@ cap = cv2.VideoCapture(args['image'])
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-# loop through video and save the 80th frame
+# loop through video and save the 80th frame to do the calibration from
+# this is a hacky solution but oh well
 prev_frame = None
 counter = 0  # Frame counter
 while True:
@@ -112,7 +113,7 @@ while True:
     if ret is False:
         break
 
-    # opportunity for better name here (or save it in a better way)
+    # save image
     if counter == 80:
         plt.imsave('image' + '.jpeg',
                    cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
@@ -128,7 +129,6 @@ width = image.shape[1]
 if LEFTSIDE:
     crop = image[int(height*3/4):height, 0:width//2]
 else:
-    print('ah')
     crop = image[int(height*3/4):height, width//2:width]
 
 if VISUALIZE:
@@ -143,10 +143,6 @@ ratio = crop.shape[0] / float(resized.shape[0])
 gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(gray, (1, 1), 0)
 thresh = cv2.threshold(blurred, 128, 255, cv2.THRESH_BINARY_INV)[1]
-
-# find contours in the thresholded image
-if VISUALIZE:
-    cv2.imshow("thresh", thresh)
 
 # get contours from the thresholded images
 cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,

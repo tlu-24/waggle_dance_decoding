@@ -9,4 +9,6 @@
 *.jpeg
 *.json
 *.csv
+*.orig
 /__pycache__
+.DS_Store

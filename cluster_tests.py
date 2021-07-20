@@ -1,3 +1,7 @@
+# cluster_tests.py
+# this file allows you to change the eps and minPts values for DBSCAN
+# and graph the results
+
 import cv2
 import numpy as np
 import pandas as pd
@@ -17,8 +21,6 @@ waggle_df = pd.read_pickle(
     '/Users/mayaabodominguez/Desktop/Bee Lab/WaggleDanceTracker/waggle_dance_decoding/Col3_061021_1124_C0011_segment-WaggleDetections.pkl')
 waggle_df_oldtime = waggle_df
 
-# Scale time
-# waggle_df['frame'] = waggle_df['frame']*TIMESCALE
 
 # cluster the potential waggles
 X = (waggle_df)
@@ -56,8 +58,6 @@ if GRAPH:
         if c == -1:
             i = -1
             j = -1
-        # print(c, i, j)
-        # cluster_df.plot(ax=axes[j, i], x='x', y='y', cmap='viridis')
         cluster_df.plot.scatter(
             ax=axes[j, i], x='x', y='y', c='frame', cmap='viridis')
 

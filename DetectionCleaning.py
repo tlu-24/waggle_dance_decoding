@@ -1,3 +1,7 @@
+# detection_cleaning.py
+# from Jordan Reese (link github here)
+# Removes duplicate points (two coordinates at the same frame in the same cluster) from clustered Waggle detections
+
 import pandas as pd
 import numpy as np
 import argparse
@@ -81,14 +85,14 @@ df.fillna(0, inplace=True)
 quant = df.euclid.quantile(0.9)
 df = df[df['euclid'] < quant]
 
-# print(df)
+
 # Save cleaned dataset
 df.to_pickle('{}-WaggleDetections_Cleaned.pkl'.format(LABEL))
 
 if GRAPHS:
-    plot = waggle_df.plot.scatter(x="x", y="y", c="frame", cmap="cool")
+    plot = df.plot.scatter(x="x", y="y", c="frame", cmap="cool")
     fig = plot.get_figure()
     fig.savefig(LABEL + "-cleanoutput.png")
-    plot = waggle_df.plot.scatter(x="x", y="y", c="Cluster", cmap="viridis")
+    plot = df.plot.scatter(x="x", y="y", c="Cluster", cmap="viridis")
     fig = plot.get_figure()
     fig.savefig(LABEL + "-cleanclusters.png")
