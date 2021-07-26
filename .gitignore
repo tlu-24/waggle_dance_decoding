@@ -10,5 +10,6 @@
 *.json
 *.csv
 *.orig
+*.svg
 /__pycache__
 .DS_Store

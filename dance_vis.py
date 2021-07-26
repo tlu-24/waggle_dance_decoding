@@ -63,7 +63,7 @@ while True:
     if ret is False:
         break
 
-    # loop through the frames and color a dot based on cluster on frames
+    # loop through the frames and color a dot on frames
     # where a waggle is potentially detected
     while counter == current_frame['frame']:
         if PRINT:

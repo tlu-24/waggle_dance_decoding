@@ -3,6 +3,7 @@
 # waggle detections based on calculated epsilon and minPts = 6
 
 import cv2
+import matplotlib
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN
@@ -51,9 +52,10 @@ kneedle = KneeLocator(distances_df['A'], distances_df['distance'], S=10.0,
 
 # save a plot of the knee
 if GRAPH:
+    plt.rcParams['font.size'] = '16'
     kneedle.plot_knee()
     plot = distances_df['distance'].plot().set_title(
-        "6 Nearest Neighbors for Waggle Detections")
+        "6 Nearest Neighbors for Waggle Detections", fontsize=24)
     plt.savefig(LABEL+"knee")
 
 # get epsilon
@@ -70,9 +72,26 @@ waggle_df.loc[:, 'Cluster'] = clust1.labels_
 print(len(waggle_df['Cluster'].unique()), "clusters found")
 
 if GRAPH:
-    ploty = waggle_df.plot.scatter(
-        x="x", y="y", c="Cluster", cmap="viridis", title="Detected Waggles and Clusters").invert_yaxis()
-    plt.savefig("FULL_clusters_"+LABEL+".png")
+    fig, ax = plt.subplots(figsize=(8.8, 6.9), ncols=2,
+                           gridspec_kw={'width_ratios': [10, 1]})
+
+    cmap = matplotlib.cm.viridis
+    x = waggle_df['x']
+    y = waggle_df['y']
+    bounds = waggle_df['Cluster']
+    norm = matplotlib.colors.Normalize(vmin=-1, vmax=26)
+    fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap),
+                 cax=ax[1], orientation='vertical', label='Cluster')
+
+    ax[0].scatter(x, y, c=bounds, cmap='viridis')
+    ax[0].invert_yaxis()
+    ax[0].set_xlabel('x/pixels', fontsize=16)
+    ax[0].set_ylabel('y/pixels', fontsize=16)
+    for label in (ax[0].get_xticklabels() + ax[0].get_yticklabels()):
+        label.set_fontsize(16)
+    ax[0].set_title('Detected Waggles and Clusters', fontsize=24)
+    plt.savefig("FULL_clusters_"+LABEL+".svg")
+    plt.show()
 
 if SAVE:
     distances_df.to_csv("NN_eps.csv")

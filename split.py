@@ -21,6 +21,14 @@ re_length = re.compile(r'Duration: (\d{2}):(\d{2}):(\d{2})\.\d+,')
 
 
 def get_global_start(filename):
+    """ 
+    extracts information about the colony, date, time and videoname from
+    a filename of a long bee video.
+        Inputs:
+            - video filename
+        Outputs: 
+            - colony, date/time, videoname from the videofilename
+    """
     betterfilename = filename.split('/')
     filename = betterfilename[-1]
     (colony, date, time, videoname) = filename.split('_')
@@ -32,10 +40,15 @@ def get_global_start(filename):
     print(colony, outdate, outtime, videoname)
     return (colony, outdate, videoname)
 
-# turn a datetime into a good filename
-
 
 def date_to_string(datetime):
+    """ 
+    creates a string from a datetime, for use in filenames
+        Inputs:
+            - datetime
+        Outputs: 
+            - datetime in a string as "mmddyyyy_hhmmss"
+    """
     y = str(int(datetime.year))
     m = str(int(datetime.month))
     d = str(int(datetime.day))

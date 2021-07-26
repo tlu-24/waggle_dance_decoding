@@ -1,3 +1,6 @@
+# convertfiles.py
+# convienence file for converting various files that contain pandas dataframes
+
 import pandas as pd
 import argparse
 

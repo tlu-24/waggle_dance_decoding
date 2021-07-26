@@ -35,6 +35,13 @@ label = args['image'].split('.')[0].split('/')[-1]  # output filename
 
 
 def equalizeMe(img_in):
+    """ 
+    Takes an image and performs histogram equalization.
+        Inputs:
+            - img_in: image to be equalized
+        Outputs: 
+            - histogram equalized
+    """
   # From:
   # https://towardsdatascience.com/histogram-equalization-a-simple-way-to-improve-the-contrast-of-your-image-bcd66596d815
   # segregate color streams
@@ -73,10 +80,15 @@ def equalizeMe(img_in):
     #cv2.imwrite('output_name.png', equ)
     return img_out
 
-# Find large child contours in the frame and return the x,y coordinates and the frame in which the contour was found
-
 
 def detect(c):
+    """ 
+    Based on contour, is it a rectangle or square?
+        Inputs:
+            - contour
+        Outputs: 
+            - height, width, shape of contour
+    """
     peri = cv2.arcLength(c, True)
     approx = cv2.approxPolyDP(c, 0.04*peri, True)
     h = 0
@@ -185,20 +197,22 @@ if VISUALIZE:
     cv2.waitKey(0)
 
 # the median largest square is probably a reference square (which is 1cm in width)
-pix_cm = statistics.median(maxsquares)
+try:
+    pix_cm = statistics.median(maxsquares)
 
-# calulate the size of a bee in pixels
-bee_l = BEE_SIZE*pix_cm*0.47
-bee_w = bee_l*0.4
+    # calulate the size of a bee in pixels
+    bee_l = BEE_SIZE*pix_cm*0.47
+    bee_w = bee_l*0.4
 
-bee_area = int(bee_l*bee_w)  # in pixels
+    bee_area = int(bee_l*bee_w)  # in pixels
 
-out_dict = {'pixelspercm': [pix_cm], 'bee_len': [bee_l],
-            'bee_w': [bee_w], 'bee_area': [bee_area]}
-out_df = pd.DataFrame(
-    out_dict)
-out_df.to_pickle(OUT_DIR+label + '_scale.pkl')
+    out_dict = {'pixelspercm': [pix_cm], 'bee_len': [bee_l],
+                'bee_w': [bee_w], 'bee_area': [bee_area]}
+    out_df = pd.DataFrame(
+        out_dict)
+    out_df.to_pickle(OUT_DIR+label + '_scale.pkl')
 
-# change later
-print(squares, '\npixels per cm =', pix_cm, '\n bee length =',
-      bee_l, '\n bee width =', bee_w, '\n bee area =', bee_area)
+    print(squares, '\npixels per cm =', pix_cm, '\n bee length =',
+          bee_l, '\n bee width =', bee_w, '\n bee area =', bee_area)
+except:
+    print("no reference squares detected")
