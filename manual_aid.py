@@ -1,6 +1,7 @@
 # manual_aid.py
 # This file provides methods and runs a script that creates a manifest file for "split.py"
-# based on waggle detections from "DanceDetector.py" to help make manual decoding easier.
+# based on waggle detections from "DanceDetector.py" to help make manual decoding easier, also creates
+# an info file about start times and video names of new videos.
 
 # imports
 import cv2
@@ -35,11 +36,19 @@ BUFFER = args['buffer']  # frames
 FPS = args['fps']
 
 
-# this function takes 2 lists of frames with the starts and ends of ranges
-# and does the appropriate changes with correct overlap to output
-# info for the json file (start, length, new label)
-
 def make_ranges(starts, ends):
+    """ 
+    Takes the beginnings and ends of the clusters and creates and merges ranges that overlap in time
+    (e.g. beginning of one is before end of another one) with BUFFER frames on either end.
+        Inputs:
+            - starts, list of the starting frames of each cluster
+            - ends, list of the ending frames of each cluster
+        Outputs: 
+            - labels: list of names for new video clips, based on the start time of the clip
+            - final_starts: list of starting frames for new cluster ranges
+            - final_ends: list of starting frames for new cluster ranges
+            - length: list of how long the new ranges are
+    """
     final_starts = []
     final_ends = []
     length = []  # in seconds
@@ -55,7 +64,8 @@ def make_ranges(starts, ends):
         # if overlap, update current_end to accommodate for buffer
         if s <= current_end + BUFFER:
             current_end = ends[si] + BUFFER
-        # else start a new range, update current_end and current_start appropriately
+        # else start a new range, update current_end to end of previous range,
+        # current_start to start of next range
         else:
             length.append(((current_end - current_start)+BUFFER)/FPS)
             final_ends.append(current_end)
@@ -82,7 +92,6 @@ coord_x = []
 coord_y = []
 names = []
 
-# throw an error here if there is only one cluster
 print('number of clusters:', len(waggle_df['Cluster'].unique()))
 
 # iterate through the clusters
@@ -113,8 +122,6 @@ for c in waggle_df['Cluster'].unique():
 starts = []
 ends = []
 label = []
-
-
 for i, (c, (start, end)) in enumerate(cluster_ranges):
     starts.append(int(start))
     ends.append(int(end))

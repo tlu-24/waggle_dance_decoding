@@ -1,3 +1,7 @@
+# save_dances.py
+# Modified from @Jreese18 https://github.com/Jreece18/WaggleDanceTracker
+# saves cropped videos of the dances
+
 import pandas as pd
 import numpy as np
 import cv2
@@ -53,9 +57,6 @@ for dance in df.Dance.unique():
     out = cv2.VideoWriter(
         '{}-{}.mp4'.format(prefix, str(int(dance.Dance.max()))), -1, fps, (x1-x0, y1-y0))
     print('{}-{}.mp4'.format(prefix, str(int(dance.Dance.max()))))
-    # out = cv2.VideoWriter(
-    #     '{}-{}.mp4'.format(prefix, str(index), fps, (x1-x0, y1-y0)))
-    # print('{}-{}.mp4'.format(prefix, str(int(index))))
 
     # Set video start
     cap.set(1, frame0-5)

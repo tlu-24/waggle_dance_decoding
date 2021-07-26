@@ -1,5 +1,5 @@
-# DanceDetector.py
-# need link to Jordan Reese's github
+# dance_detector.py
+# Modified from @Jreese18 https://github.com/Jreece18/WaggleDanceTracker
 # Uses foreground detection for waggle detection in video
 
 import cv2
@@ -24,7 +24,7 @@ args = vars(ap.parse_args())
 
 contour_df = pd.read_pickle(args['contour'])
 
-BEE_CONTOUR = contour_df['bee_area'][0] * 1.5
+BEE_CONTOUR = contour_df['bee_area'][0]
 BLUR = args['blur']
 VISUALIZE = args['visualize']
 FILENAME = args['input']
@@ -32,6 +32,13 @@ LABEL = FILENAME.split('/')[-1].split('.')[0]
 
 
 def equalizeMe(img_in):
+    """ 
+    Takes an image and performs histogram equalization.
+        Inputs:
+            - img_in: image to be equalized
+        Outputs: 
+            - histogram equalized
+    """
   # equalize your image. Follow this guide:
   # https://towardsdatascience.com/histogram-equalization-a-simple-way-to-improve-the-contrast-of-your-image-bcd66596d815
   # segregate color streams
@@ -73,6 +80,14 @@ def equalizeMe(img_in):
 
 
 def findChildContours(frame, frame_count):
+    """ 
+    Finds the contours in a frame, keep child contours above threshold size
+        Inputs:
+            - frame: frame to look for contours in
+            - frame_count: # frame
+        Outputs: 
+            - coordinates of contours found in frame
+    """
     contours, hierarchy = cv2.findContours(
         frame, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
     child_contours = []
@@ -98,7 +113,7 @@ def findChildContours(frame, frame_count):
     # Which frame these contours found in
     frame_counts = [frame_count] * len(x_coords)
     # Zip lists to list of tuples # Size removed
-    return list(zip(x_coords, y_coords, frame_counts))
+    return list(zip(x_coords, y_coords, frame_counts, size))
 
 
 ### Motion Detector ###
@@ -140,18 +155,6 @@ while True:
     gray_blur = cv2.GaussianBlur(gray, (BLUR, BLUR), 0)
     thresh = cv2.adaptiveThreshold(gray_blur, 255,
                                    cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 111, 10)
-
-    # if counter == 51:
-    #     plt.imsave('frame' + str(counter) + '.jpeg',
-    #                cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-    #     plt.imsave('eqframe' + str(counter) + '.jpeg',
-    #                cv2.cvtColor(eq_frame, cv2.COLOR_RGB2BGR))
-    #     plt.imsave('grayframe' + str(counter) + '.jpeg',
-    #                cv2.cvtColor(gray, cv2.COLOR_RGB2BGR))
-    #     plt.imsave('grayblur' + str(counter) + '.jpeg',
-    #                cv2.cvtColor(gray_blur, cv2.COLOR_RGB2BGR))
-    #     plt.imsave('thresh' + str(counter) + '.jpeg',
-    #                cv2.cvtColor(thresh, cv2.COLOR_RGB2BGR))
 
     # If first frame, set current frame as prev_frame
     if prev_frame is None:
@@ -203,7 +206,8 @@ if VISUALIZE:
 
 
 # Convert all waggle like activity to DF
-waggle_df = pd.DataFrame(potential_waggles, columns=['x', 'y', 'frame'])
+waggle_df = pd.DataFrame(potential_waggles, columns=[
+                         'x', 'y', 'frame', 'contour_size'])
 
 
 waggle_df.to_pickle('{}-WaggleDetections.pkl'.format(LABEL))

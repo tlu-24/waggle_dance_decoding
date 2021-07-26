@@ -1,4 +1,4 @@
-# WaggleRunTracker.py
+# waggle_run_tracker.py
 # from jordan reese (need to get link)
 # Tracks bees (ideally) for the range of the entire waggle run, gets orientation and angle info
 

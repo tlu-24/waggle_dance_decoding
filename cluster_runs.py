@@ -1,3 +1,7 @@
+# cluster_runs.py
+# Modified from @Jreese18 https://github.com/Jreece18/WaggleDanceTracker
+# clusters waggle runs into dances
+
 import numpy as np
 import pandas as pd
 import warnings

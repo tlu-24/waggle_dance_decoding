@@ -12,18 +12,21 @@ NEW_H = 1080
 
 FILENAME = '/Users/mayaabodominguez/Desktop/BeeLab/WaggleDanceTracker/waggle_dance_decoding/Col4_061021_1215_C0005_segment-findepscluster_77_6.pkl'
 
-
+# read in dataframe
 df = pd.read_pickle(FILENAME)
 
+# make a new series to do calculations on
 df_x = pd.Series(df['x'], name='norm_x')
 df_y = pd.Series(df['y'], name='norm_y')
 
+# normalized coordinates
 norm_x = df_x/ORIGINAL_W
 norm_y = df_y/ORIGINAL_H
 
 df['norm_x'] = norm_x
 df['norm_y'] = norm_y
 
+# convert to new coordinates
 df['1080_x'] = norm_x*NEW_W
 df['1080_y'] = norm_y*NEW_H
 
