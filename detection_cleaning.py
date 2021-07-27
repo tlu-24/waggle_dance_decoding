@@ -1,5 +1,5 @@
 # detection_cleaning.py
-# from Jordan Reese (link github here)
+# Modified from @Jreese18 https://github.com/Jreece18/WaggleDanceTracker
 # Removes duplicate points (two coordinates at the same frame in the same cluster) from clustered Waggle detections
 
 import pandas as pd

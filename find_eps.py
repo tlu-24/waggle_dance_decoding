@@ -28,6 +28,7 @@ SAVE = args['save']
 GRAPH = args['graph']
 FILENAME = args['input']
 LABEL = FILENAME.split('/')[-1].split('-')[0]
+MINPTS = 6  # chosen to be 2*dimensionality of data based on https://www.ccs.neu.edu/home/vip/teach/DMcourse/2_cluster_EM_mixt/notes_slides/revisitofrevisitDBSCAN.pdf
 
 # read in waggle detections
 waggle_df = pd.read_pickle(FILENAME)
@@ -64,7 +65,7 @@ eps = kneedle.knee_y
 
 # perform clustering using calculated eps and minPts=6
 X = (waggle_df)
-clust1 = DBSCAN(eps=eps, min_samples=6).fit(X)
+clust1 = DBSCAN(eps=eps, min_samples=MINPTS).fit(X)
 
 # add clusters to df
 waggle_df.loc[:, 'Cluster'] = clust1.labels_

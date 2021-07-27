@@ -1,6 +1,6 @@
 # scale_calibrate.py
 # this file takes a bee video, and extracts the size of the checkerboard pattern on the
-# reference card, then calculates the dimensions and area of bee in pixels
+# reference card, then calculates the dimensions and area of bee abdomen in pixels
 
 import cv2
 import numpy as np
@@ -200,7 +200,9 @@ if VISUALIZE:
 try:
     pix_cm = statistics.median(maxsquares)
 
-    # calulate the size of a bee in pixels
+    # calulate the size of a bee abdomen in pixels
+    # the abdomen is 0.47 * total length of bee
+    # width is 0.4 * length of abdomen
     bee_l = BEE_SIZE*pix_cm*0.47
     bee_w = bee_l*0.4
 

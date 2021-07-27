@@ -111,7 +111,7 @@ for c in waggle_df['Cluster'].unique():
 
         # where in space the cluster starts
         coord_x.append(clust.iloc[0, :]['x'])
-        coord_y.append(clust.iloc[0, :]['x'])
+        coord_y.append(clust.iloc[0, :]['y'])
 
     # Get range of frames where waggle occurs
     rang = np.arange(start, end, 1)
@@ -141,6 +141,8 @@ for ci, c in enumerate(clusters):
                 break
 
 # set up for dataframes
+# has a row for each cluster: which (smaller) video its a part of, cluster #, what frame in the video
+# it starts at, and the coordinates of the beginning of the cluster
 info_dict = {'video': names, 'cluster': clusters,  'frame_start': starts[1:],
              'coord_x': coord_x, 'coord_y': coord_y}
 

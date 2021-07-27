@@ -1,5 +1,5 @@
 # waggle_run_tracker.py
-# from jordan reese (need to get link)
+# Modified from @Jreese18 https://github.com/Jreece18/WaggleDanceTracker
 # Tracks bees (ideally) for the range of the entire waggle run, gets orientation and angle info
 
 import pandas as pd

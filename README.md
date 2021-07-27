@@ -1,6 +1,6 @@
 # automatic_dance_decoding
 
-automatic_dance_decoding is a modified version of [WaggleDanceTracker](https://github.com/Jreece18/WaggleDanceTracker) to create a generalized approach to automatic dance decoding. It uses foreground detection techniques to detect the waggle dances, and then tracking techniques to get the orientation and duration of each waggle run. 
+automatic_dance_decoding is a modified version of [@Jreese18](https://github.com/Jreece18)'s [WaggleDanceTracker](https://github.com/Jreece18/WaggleDanceTracker) to create a generalized approach to automatic dance decoding. It uses foreground detection techniques to detect the waggle dances, and then tracking techniques to get the orientation and duration of each waggle run. 
 
 ## Installation
 
@@ -29,6 +29,17 @@ Information on each script's usage can be found with the ``` -h``` switch:
 ```bash
 python3.7 scriptname.py -h
 ```
+The scripts should be run in the following order:
+
+1. split.py 
+2. scale_calibration.py
+3. dance_detector.py
+4. (optional) manual_aid.py
+5. find_eps.py
+6. clean_detections.py
+7. waggle_dance_tracker.py
+Other steps
+
 
 ## File Descriptions
 
@@ -44,5 +55,11 @@ python3.7 scriptname.py -h
 - scale_data.py - Convenience script to convert coords in 4k to other resolutions
 - split.py - Script modified from AntTracker as a wrapper script for ffmpeg calls to split video
 - save_dances.py - Saves each waggle dance as a separate cropped video. The bee is highlighted during the waggle run as a visual aid.
--waggle_run_tracker.py
-Using the detection dataset as a skeleton, tracks the bee throughout the waggle run. Saves data on orientation, waggle frequency, spatial coordinates for each cluster.
+- waggle_run_tracker.py - Using the detection dataset as a skeleton, tracks the bee throughout the waggle run. Saves data on orientation, waggle frequency, spatial coordinates for each cluster.
+
+## Changes made to [@Jreese18](https://github.com/Jreece18)'s [WaggleDanceTracker](https://github.com/Jreece18/WaggleDanceTracker)
+| Modified                                                                                                                                                                | New                                                                                                                |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| **dance_detector.py** - added histogram equalization and adaptive thresholding - separated out the DBSCAN clustering step (see find_eps.py) - added input for scale of bees | **scale_calibrate.py** - gets size of bees in pixels to pass to dance_detector.py                                      |
+| **waggle_dance_tracker.py** - made adjustments for thresholding - work in progress                                                                                          | **find_eps.py** - uses Nearest Neighbors to find clustering parameters for DBSCAN - perform DBSCAN clustering on data  |
+| **split.py** - made adjustments for our video                                                                                                                               | **dance_vis.py, scale_data.py, convertfiles.py, cluster_tests.py, makeplot.py** - convenience files for various things |
