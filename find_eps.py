@@ -52,10 +52,10 @@ kneedle = KneeLocator(distances_df['A'], distances_df['distance'], S=10.0,
 
 # save a plot of the knee
 if GRAPH:
-    plt.rcParams['font.size'] = '16'
+    plt.rcParams['font.size'] = '18'
     kneedle.plot_knee()
     plot = distances_df['distance'].plot().set_title(
-        "6 Nearest Neighbors for Waggle Detections", fontsize=24)
+        "Determining Epsilon Using 6 Nearest Neighbors", fontsize=24)
     plt.savefig(LABEL+"knee")
 
 # get epsilon
