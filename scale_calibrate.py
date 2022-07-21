@@ -15,8 +15,6 @@ from matplotlib import pyplot as plt
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True,
                 help="path to the input video")
-ap.add_argument("-o", "--outdir", required=True,
-                help="path to the out directory")
 ap.add_argument("-l", "--leftside", type=bool, required=True,
                 help="is the reference card on the left side?")
 ap.add_argument("-s", "--size", type=int, default=1.5, required=False,
@@ -28,7 +26,6 @@ args = vars(ap.parse_args())
 LEFTSIDE = args['leftside']  # is the reference card on the left side
 BEE_SIZE = args['size']  # length of bee in cm
 VISUALIZE = args['visualize']  # show visualizations
-OUT_DIR = args['outdir']  # directory for output
 label = args['image'].split('.')[0].split('/')[-1]  # output filename
 
 # Performs histogram equalization on a color image
@@ -154,7 +151,7 @@ ratio = crop.shape[0] / float(resized.shape[0])
 # and threshold it
 gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(gray, (1, 1), 0)
-thresh = cv2.threshold(blurred, 128, 255, cv2.THRESH_BINARY_INV)[1]
+thresh = cv2.threshold(blurred, 128, 240, cv2.THRESH_BINARY_INV)[1]
 
 # get contours from the thresholded images
 cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
@@ -206,13 +203,13 @@ try:
     bee_l = BEE_SIZE*pix_cm*0.47
     bee_w = bee_l*0.4
 
-    bee_area = int(bee_l*bee_w)  # in pixels
+    bee_area = int(bee_l*bee_w*0.523)  # in pixels
 
     out_dict = {'pixelspercm': [pix_cm], 'bee_len': [bee_l],
                 'bee_w': [bee_w], 'bee_area': [bee_area]}
     out_df = pd.DataFrame(
         out_dict)
-    out_df.to_pickle(OUT_DIR+label + '_scale.pkl')
+    out_df.to_pickle(label + '_scale.pkl')
 
     print(squares, '\npixels per cm =', pix_cm, '\n bee length =',
           bee_l, '\n bee width =', bee_w, '\n bee area =', bee_area)
